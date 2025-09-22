@@ -1,0 +1,1663 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>COPPA - Painel de Controle Avançado</title>
+
+    <meta name="theme-color" content="#8B0000">
+    <meta name="description" content="Sistema de Controle de Apreensões de Animais Silvestres - COPPA">
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/particles.js/2.0.0/particles.min.js"></script>
+
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+    <script type="module">
+        import {
+            getFirestore,
+            collection,
+            getDocs,
+            orderBy,
+            query
+        } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        // SUA CONFIGURAÇÃO DO FIREBASE AQUI
+        const firebaseConfig = {
+            apiKey: "AIzaSyAyUe9yMRFqC6FaaspP6CuzezWxmangx2g",
+            authDomain: "apreensao-30b30.firebaseapp.com",
+            projectId: "apreensao-30b30",
+            storageBucket: "apreensao-30b30.firebasestorage.app",
+            messagingSenderId: "996577557157",
+            appId: "1:996577557157:web:1a41ddc15fb65b9bc6ab4c",
+            measurementId: "G-GCND642GTB"
+        };
+
+        const { initializeApp } = await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js");
+        const appFirebase = initializeApp(firebaseConfig);
+        const db = getFirestore(appFirebase);
+
+        window.firebaseDB = {
+            db, collection, getDocs, orderBy, query
+        };
+    </script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+        :root {
+            --primary-gradient: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            --danger-gradient: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+            --success-gradient: linear-gradient(135deg, #059669 0%, #047857 100%);
+            --warning-gradient: linear-gradient(135deg, #d97706 0%, #b45309 100%);
+            --info-gradient: linear-gradient(135deg, #0369a1 0%, #075985 100%);
+            --dark-gradient: linear-gradient(135deg, #1f2937 0%, #374151 100%);
+            --gold-gradient: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+
+            --glass-bg: rgba(15, 23, 42, 0.8);
+            --glass-bg-light: rgba(30, 41, 59, 0.6);
+            --glass-border: rgba(148, 163, 184, 0.2);
+            --text-primary: #f8fafc;
+            --text-secondary: #cbd5e1;
+            --text-light: #94a3b8;
+
+            --shadow-light: 0 8px 32px rgba(0, 0, 0, 0.3);
+            --shadow-medium: 0 15px 35px rgba(0, 0, 0, 0.4);
+            --shadow-heavy: 0 25px 50px rgba(0, 0, 0, 0.5);
+
+            --border-radius: 20px;
+            --border-radius-small: 12px;
+            --transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            --transition-fast: all 0.2s ease;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);
+            min-height: 100vh;
+            color: var(--text-primary);
+            line-height: 1.6;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        #particles-js {
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            z-index: -1;
+        }
+
+        .glass {
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            box-shadow: var(--shadow-light);
+        }
+
+        .glass-intense {
+            background: var(--glass-bg-light);
+            backdrop-filter: blur(25px);
+            -webkit-backdrop-filter: blur(25px);
+            border: 1px solid var(--glass-border);
+            box-shadow: var(--shadow-medium);
+        }
+
+        .header {
+            background: var(--glass-bg);
+            backdrop-filter: blur(30px);
+            border-radius: 25px;
+            padding: 40px;
+            margin: 25px;
+            text-align: center;
+            border: 1px solid var(--glass-border);
+            animation: slideInDown 1s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(248, 250, 252, 0.1), transparent);
+            animation: shimmer 3s infinite;
+        }
+
+        @keyframes shimmer {
+            0% { left: -100%; }
+            100% { left: 100%; }
+        }
+
+        @keyframes slideInDown {
+            from { opacity: 0; transform: translateY(-50px) scale(0.95); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        .header h1 {
+            color: #f8fafc;
+            font-size: 3.2em;
+            font-weight: 800;
+            margin-bottom: 15px;
+            text-shadow: 0 4px 20px rgba(0,0,0,0.5);
+            letter-spacing: -1px;
+        }
+
+        .header p {
+            color: var(--text-secondary);
+            font-size: 1.4em;
+            font-weight: 400;
+            opacity: 0;
+            animation: fadeInUp 1s 0.5s forwards;
+        }
+
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .container {
+            max-width: 1800px;
+            margin: 0 auto;
+            padding: 25px;
+        }
+
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 10000;
+        }
+
+        .spinner-container {
+            position: relative;
+            width: 80px;
+            height: 80px;
+        }
+
+        .spinner {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border: 4px solid rgba(255, 255, 255, 0.1);
+            border-top: 4px solid #fff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        .spinner:nth-child(2) {
+            animation-delay: 0.1s;
+            transform: scale(0.8);
+        }
+
+        .spinner:nth-child(3) {
+            animation-delay: 0.2s;
+            transform: scale(0.6);
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            color: white;
+            margin-top: 30px;
+            font-size: 1.2em;
+            font-weight: 500;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border-radius: var(--border-radius);
+            padding: 35px;
+            margin-bottom: 35px;
+            border: 1px solid var(--glass-border);
+            box-shadow: var(--shadow-medium);
+            animation: fadeInUp 0.8s ease;
+            transition: var(--transition);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: var(--danger-gradient);
+            border-radius: var(--border-radius) var(--border-radius) 0 0;
+        }
+
+        .card:hover {
+            transform: translateY(-5px) scale(1.01);
+            box-shadow: var(--shadow-heavy);
+        }
+
+        .card h3 {
+            margin-bottom: 25px;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            font-size: 1.4em;
+            font-weight: 700;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 25px;
+            margin-bottom: 50px;
+        }
+
+        .stat-card {
+            background: var(--glass-bg-light);
+            border-radius: var(--border-radius);
+            padding: 35px 25px;
+            text-align: center;
+            border: 1px solid var(--glass-border);
+            transition: var(--transition);
+            position: relative;
+            overflow: hidden;
+            cursor: pointer;
+            animation: fadeInScale 0.6s ease;
+            animation-delay: calc(var(--index) * 0.1s);
+        }
+
+        @keyframes fadeInScale {
+            from { opacity: 0; transform: scale(0.8) translateY(30px); }
+            to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: var(--danger-gradient);
+            border-radius: var(--border-radius) var(--border-radius) 0 0;
+            transform: scaleX(0);
+            transition: transform 0.3s ease;
+        }
+
+        .stat-card:hover::before {
+            transform: scaleX(1);
+        }
+
+        .stat-card:hover {
+            transform: translateY(-10px) scale(1.05);
+            box-shadow: var(--shadow-heavy);
+        }
+
+        .stat-card:nth-child(1) { --gradient: var(--danger-gradient); }
+        .stat-card:nth-child(2) { --gradient: var(--success-gradient); }
+        .stat-card:nth-child(3) { --gradient: var(--warning-gradient); }
+        .stat-card:nth-child(4) { --gradient: var(--info-gradient); }
+
+        .stat-icon {
+            font-size: 4em;
+            margin-bottom: 15px;
+            filter: drop-shadow(0 4px 10px rgba(0,0,0,0.2));
+            animation: float 3s ease-in-out infinite;
+            animation-delay: calc(var(--index) * 0.2s);
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+
+        .stat-number {
+            font-size: 3.5em;
+            font-weight: 800;
+            background: var(--danger-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 10px;
+            animation: countUp 2s ease-out;
+        }
+
+        @keyframes countUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .stat-label {
+            font-size: 1.1em;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            font-weight: 600;
+        }
+
+        .btn {
+            background: var(--danger-gradient);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: var(--border-radius-small);
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: 600;
+            transition: var(--transition);
+            margin: 8px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: var(--shadow-light);
+        }
+
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.5s;
+        }
+
+        .btn:hover::before {
+            left: 100%;
+        }
+
+        .btn:hover:not(:disabled) {
+            transform: translateY(-3px) scale(1.05);
+            box-shadow: var(--shadow-medium);
+        }
+
+        .btn:active {
+            transform: translateY(-1px) scale(1.02);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .btn-success { background: var(--success-gradient); }
+        .btn-warning { background: var(--warning-gradient); }
+        .btn-info { background: var(--info-gradient); }
+        .btn-danger { background: var(--danger-gradient); }
+        .btn-secondary { background: var(--dark-gradient); }
+
+
+        .charts-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+            gap: 35px;
+            margin-bottom: 50px;
+        }
+
+        .chart-card {
+            background: var(--glass-bg-light);
+            border-radius: var(--border-radius);
+            padding: 35px;
+            border: 1px solid var(--glass-border);
+            box-shadow: var(--shadow-medium);
+            height: 450px;
+            display: flex;
+            flex-direction: column;
+            transition: var(--transition);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .chart-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: var(--danger-gradient);
+            border-radius: var(--border-radius) var(--border-radius) 0 0;
+        }
+
+        .chart-card:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--shadow-heavy);
+        }
+
+        .chart-title {
+            font-size: 1.6em;
+            margin-bottom: 25px;
+            text-align: center;
+            color: var(--text-primary);
+            font-weight: 700;
+            position: relative;
+        }
+
+        .chart-title::after {
+            content: '';
+            position: absolute;
+            bottom: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 50px;
+            height: 3px;
+            background: var(--danger-gradient);
+            border-radius: 2px;
+        }
+
+        .chart-card canvas {
+            flex: 1;
+            max-height: 350px;
+        }
+        
+        #map-container {
+            grid-column: 1 / -1; /* Ocupa a largura total */
+        }
+
+        #map {
+            width: 100%;
+            height: 500px; /* Altura ajustável */
+            border-radius: var(--border-radius);
+            border: 1px solid var(--glass-border);
+            z-index: 1;
+        }
+        .leaflet-container {
+            background: #1e293b;
+        }
+        .leaflet-tile-pane {
+            filter: invert(100%) hue-rotate(180deg) brightness(95%) contrast(90%);
+        }
+        .map-info-text {
+            font-size: 0.9em;
+            color: var(--text-secondary);
+            text-align: center;
+            margin-top: -15px; /* Puxa para mais perto do título */
+            margin-bottom: 10px;
+            font-style: italic;
+        }
+        .map-missing-cities-text {
+            font-size: 0.85em;
+            color: var(--warning-gradient);
+            text-align: center;
+            margin-bottom: 20px;
+            font-weight: 500;
+        }
+        
+        .timeline-item {
+            background: var(--glass-intense);
+            border-radius: var(--border-radius);
+            padding: 30px;
+            margin-bottom: 25px;
+            border-left: 5px solid;
+            border-image: var(--primary-gradient) 1;
+            box-shadow: var(--shadow-light);
+            transition: var(--transition);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 5px;
+            height: 100%;
+            background: var(--danger-gradient);
+        }
+
+        .timeline-item:hover {
+            transform: translateX(10px) scale(1.02);
+            box-shadow: var(--shadow-medium);
+        }
+
+        .timeline-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .timeline-date { font-weight: 700; color: var(--text-primary); font-size: 1.1em; }
+        .timeline-location { color: var(--text-secondary); font-weight: 500; }
+        .location-stats {
+            background: var(--glass-intense);
+            border-radius: var(--border-radius);
+            padding: 35px;
+            box-shadow: var(--shadow-medium);
+            border: 1px solid var(--glass-border);
+        }
+        .location-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            transition: var(--transition);
+        }
+        .location-item:hover {
+            background: rgba(102, 126, 234, 0.1);
+            transform: translateX(10px);
+            border-radius: var(--border-radius-small);
+            padding-left: 15px;
+        }
+        .location-count {
+            background: var(--danger-gradient);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 0.9em;
+            box-shadow: var(--shadow-light);
+        }
+
+        .animal-list { display: flex; flex-wrap: wrap; gap: 15px; margin-bottom: 20px; }
+        .animal-tag {
+            background: var(--danger-gradient); color: white; padding: 12px 20px;
+            border-radius: 25px; font-size: 0.95em; display: flex; align-items: center;
+            gap: 8px; animation: slideInScale 0.4s ease; box-shadow: var(--shadow-light);
+            transition: var(--transition); white-space: nowrap; flex-shrink: 0;
+        }
+        .animal-tag:hover { transform: translateY(-2px) scale(1.05); box-shadow: var(--shadow-medium); }
+
+        .toast-container { position: fixed; top: 30px; right: 30px; z-index: 10000; max-width: 450px; }
+        .toast {
+            background: var(--glass-intense); backdrop-filter: blur(25px); border-radius: var(--border-radius-small);
+            padding: 20px 25px; margin-bottom: 15px; box-shadow: var(--shadow-medium);
+            border-left: 5px solid; transform: translateX(500px); opacity: 0;
+            transition: var(--transition); display: flex; align-items: center; gap: 15px;
+            border: 1px solid var(--glass-border);
+        }
+        .toast.show { transform: translateX(0); opacity: 1; }
+        .toast.success { border-left-color: #4ecdc4; }
+        .toast.error { border-left-color: #ff6b6b; }
+        .toast.warning { border-left-color: #feca57; }
+        .toast.info { border-left-color: #74b9ff; }
+        .toast-icon { font-size: 1.5em; flex-shrink: 0; }
+        .toast-message { font-weight: 500; color: white; }
+
+        .sync-status {
+            position: fixed; bottom: 40px; right: 40px; background: var(--glass-intense);
+            backdrop-filter: blur(25px); padding: 15px 25px; border-radius: 25px;
+            box-shadow: var(--shadow-light); display: flex; align-items: center;
+            gap: 12px; font-size: 0.95em; color: white; border: 1px solid var(--glass-border);
+        }
+        .sync-icon { animation: rotate 2s linear infinite; font-size: 1.2em; }
+        @keyframes rotate { to { transform: rotate(360deg); } }
+
+        .control-panel {
+            display: flex; flex-wrap: wrap; gap: 15px; align-items: center; margin-bottom: 30px;
+        }
+        .filter-group {
+            display: flex; flex-wrap: wrap; gap: 10px; align-items: center;
+            background: var(--glass-bg); padding: 10px 20px; border-radius: 25px;
+            border: 1px solid var(--glass-border);
+        }
+        .filter-group.date-range { display: none; }
+        .filter-group label { font-weight: 600; color: white; white-space: nowrap; }
+        .filter-group select, .filter-group input[type="date"] {
+            background: rgba(15, 23, 42, 0.8); border: 1px solid rgba(148, 163, 184, 0.3);
+            color: var(--text-primary); padding: 8px 15px; border-radius: 8px; min-width: 150px;
+        }
+        .filter-group select option { background: #1e293b; color: var(--text-primary); }
+
+        .species-analysis { display: grid; gap: 25px; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); }
+        .species-group {
+            background: var(--glass-bg); border-radius: var(--border-radius);
+            padding: 25px; border: 1px solid var(--glass-border);
+        }
+        .species-header {
+            display: flex; align-items: center; gap: 15px; margin-bottom: 20px;
+            font-size: 1.3em; font-weight: 700; color: var(--text-primary);
+        }
+        .species-item { display: flex; align-items: center; gap: 15px; margin-bottom: 15px; }
+        .species-bar { flex: 1; }
+        .species-bar-bg {
+            background: rgba(255, 255, 255, 0.1); height: 10px; border-radius: 5px;
+            overflow: hidden; margin-bottom: 5px;
+        }
+        .species-bar-fill {
+            height: 100%; background: var(--danger-gradient); border-radius: 5px;
+            transition: width 1s ease;
+        }
+        .species-info { display: flex; justify-content: space-between; align-items: center; font-size: 0.9em; }
+        .species-name { font-weight: 600; color: var(--text-primary); }
+        .species-count { font-weight: 700; color: var(--text-secondary); }
+
+        .hidden { display: none !important; }
+
+        .collapsible-card { position: relative; transition: all 0.5s ease; }
+        .collapse-btn {
+            position: absolute; top: 25px; right: 25px; background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.2); color: white; width: 35px;
+            height: 35px; border-radius: 50%; cursor: pointer; display: flex;
+            align-items: center; justify-content: center; font-size: 1.2em;
+            transition: all 0.3s ease; z-index: 10;
+        }
+        .collapse-btn:hover { background: rgba(255,255,255,0.2); transform: rotate(180deg); }
+        .card-content { transition: all 0.5s ease; overflow: hidden; }
+        .card.collapsed .card-content { max-height: 0; opacity: 0; padding-top: 0; padding-bottom: 0; margin-top: -25px;}
+        .card.collapsed { padding-bottom: 35px; }
+        .card.collapsed h3 { margin-bottom: 0; }
+
+        .quick-actions {
+            position: fixed; right: 20px; top: 80px; display: flex;
+            flex-direction: column; gap: 10px; z-index: 999;
+        }
+        .quick-action-btn {
+            width: 50px; height: 50px; border-radius: 15px; background: rgba(15,23,42,0.9);
+            backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); color: white;
+            cursor: pointer; display: flex; align-items: center; justify-content: center;
+            font-size: 1.3em; transition: all 0.3s ease; border: none;
+        }
+        .quick-action-btn:hover {
+            transform: translateX(-5px); background: rgba(220,38,38,0.8);
+            box-shadow: 0 5px 20px rgba(220,38,38,0.4);
+        }
+
+        .interactive-filter-info {
+            background: var(--glass-bg); padding: 10px 20px; border-radius: 25px;
+            border: 1px solid var(--glass-border);
+        }
+
+        @media (max-width: 768px) {
+            .charts-container { grid-template-columns: 1fr; }
+            .header { margin: 15px; padding: 25px 20px; }
+            .header h1 { font-size: 2.2em; }
+            .header p { font-size: 1.1em; }
+            .control-panel { flex-direction: column; align-items: stretch; }
+            .card { padding: 20px 15px; }
+            .chart-card { height: 350px; }
+            .animal-list {
+                display: grid !important; grid-template-columns: 1fr 1fr !important; gap: 8px !important;
+                background: rgba(255, 255, 255, 0.03) !important; padding: 12px !important;
+                border-radius: 10px !important; margin: 12px 0 !important;
+                border-left: 3px solid rgba(59, 130, 246, 0.6) !important;
+            }
+            .animal-list::before {
+                content: "🦎 Animais Apreendidos:"; display: block !important; font-weight: 600;
+                color: white; margin-bottom: 10px; font-size: 0.85em; padding-bottom: 6px;
+                border-bottom: 1px solid rgba(255, 255, 255, 0.1); grid-column: 1 / -1;
+            }
+            .animal-tag {
+                display: flex !important; align-items: center !important; justify-content: space-between !important;
+                padding: 8px 10px !important; font-size: 0.75em !important; border-radius: 6px !important;
+                margin: 0 !important; background: rgba(71, 85, 105, 0.4) !important;
+                line-height: 1.2 !important; white-space: nowrap !important; overflow: hidden !important;
+                text-overflow: ellipsis !important; border: 1px solid rgba(148, 163, 184, 0.2) !important;
+                transition: all 0.2s ease !important; flex-wrap: nowrap !important; gap: 6px !important;
+                width: 100% !important; box-sizing: border-box !important; min-height: 32px !important;
+            }
+            .animal-tag:hover {
+                background: rgba(71, 85, 105, 0.6) !important; transform: translateY(-1px) !important;
+                border-color: rgba(148, 163, 184, 0.4) !important;
+            }
+            .animal-icon { flex-shrink: 0 !important; font-size: 0.9em !important; }
+            .animal-species-name {
+                flex: 1 !important; text-align: left !important; font-weight: 500 !important;
+                overflow: hidden !important; text-overflow: ellipsis !important;
+                white-space: nowrap !important; color: #f1f5f9 !important;
+            }
+            .animal-quantity {
+                background: rgba(59, 130, 246, 0.3) !important; color: #bfdbfe !important;
+                padding: 2px 6px !important; border-radius: 8px !important; font-weight: 600 !important;
+                font-size: 0.85em !important; flex-shrink: 0 !important; margin-left: 4px !important;
+                border: 1px solid rgba(59, 130, 246, 0.4) !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="particles-js"></div>
+
+    <div id="loading" class="loading-overlay">
+        <div class="spinner-container">
+            <div class="spinner"></div>
+            <div class="spinner"></div>
+            <div class="spinner"></div>
+        </div>
+        <div class="loading-text">Carregando Sistema COPPA...</div>
+    </div>
+
+    <div class="toast-container" id="toast-container"></div>
+
+    <div id="sync-status" class="sync-status hidden">
+        <span class="sync-icon">🔄</span>
+        <span>Sincronizando com Firebase...</span>
+    </div>
+
+    <div class="quick-actions">
+        <button class="quick-action-btn" onclick="app.export.generatePDF()" title="Gerar Relatório PDF (📄)">📄</button>
+        <button class="quick-action-btn" onclick="app.export.exportCSV()" title="Exportar para CSV (📊) (Ctrl+E)">📊</button>
+        <button class="quick-action-btn" onclick="app.data.refreshData()" title="Atualizar Dados (🔄) (Ctrl+R)">🔄</button>
+    </div>
+
+    <div class="header">
+        <h1>🚨 PAINEL DE CONTROLE - COPPA</h1>
+        <p>Sistema de Controle e Análise de Apreensões de Animais Silvestres</p>
+    </div>
+
+    <div class="container">
+        <div class="stats-grid">
+             <div class="stat-card" style="--index: 0;">
+                <div class="stat-icon">🚔</div>
+                <div class="stat-number" id="total-operations">0</div>
+                <div class="stat-label">Operações Realizadas</div>
+            </div>
+            <div class="stat-card" style="--index: 1;">
+                <div class="stat-icon">🐦⚖️</div>
+                <div class="stat-number" id="total-animals">0</div>
+                <div class="stat-label">Animais Apreendidos</div>
+            </div>
+            <div class="stat-card" style="--index: 2;">
+                <div class="stat-icon">🔗</div>
+                <div class="stat-number" id="total-materials">0</div>
+                <div class="stat-label">Materiais Apreendidos</div>
+            </div>
+            <div class="stat-card" style="--index: 3;">
+                <div class="stat-icon">📍</div>
+                <div class="stat-number" id="total-locations">0</div>
+                <div class="stat-label">Locais Diferentes</div>
+            </div>
+        </div>
+
+        <div class="card collapsible-card">
+            <h3>🎯 Painel de Controle e Filtros</h3>
+            <button class="collapse-btn">▼</button>
+            <div class="card-content">
+                <div class="control-panel">
+                    <div class="filter-group">
+                        <label for="filter-city">🔍 Cidade:</label>
+                        <select id="filter-city" onchange="app.filter.filterData()">
+                            <option value="">Todas as Cidades</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="filter-period">⏰ Período:</label>
+                        <select id="filter-period" onchange="app.periodFilter.handlePeriodFilter()">
+                            <option value="all">Todo o Período</option>
+                            <option value="this-week">Esta Semana</option>
+                            <option value="last-week">Semana Passada</option>
+                            <option value="this-month">Mês Atual</option>
+                            <option value="last-month">Mês Passado</option>
+                            <option value="this-year">Este Ano</option>
+                            <option value="custom">Período Personalizado</option>
+                        </select>
+                    </div>
+                    <div id="custom-date-group" class="filter-group date-range">
+                        <input type="date" id="start-date" onchange="app.periodFilter.filterDataByDates()">
+                        <input type="date" id="end-date" onchange="app.periodFilter.filterDataByDates()">
+                    </div>
+                    <div id="interactive-filter-display" class="filter-group interactive-filter-info hidden">
+                        <span id="interactive-filter-text"></span>
+                        <button class="btn btn-secondary" style="padding: 8px 15px; margin: 0; font-size: 0.9em;" onclick="app.clearInteractiveFilters()">Limpar</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card" id="map-container">
+            <h3>🗺️ Locais de Operação</h3>
+            <div id="map-info" class="map-info-text"></div>
+            <div id="map-missing-cities" class="map-missing-cities-text"></div>
+            <div id="map"></div>
+        </div>
+
+        <div class="charts-container">
+            <div class="chart-card">
+                <div class="chart-title">Apreensões por Tipo de Animal</div>
+                <canvas id="animalChart"></canvas>
+            </div>
+            <div class="chart-card">
+                <div class="chart-title">Evolução Mensal das Apreensões</div>
+                <canvas id="monthChart"></canvas>
+            </div>
+        </div>
+
+        <div class="charts-container">
+            <div class="chart-card">
+                <div class="chart-title">Top Materiais Apreendidos</div>
+                <canvas id="materialChart"></canvas>
+            </div>
+            <div class="chart-card">
+                <div class="chart-title">Ocorrências por Dia da Semana</div>
+                <canvas id="weekdayChart"></canvas>
+            </div>
+        </div>
+
+        <div class="card collapsible-card">
+            <h3>🐾 Análise Detalhada de Espécies</h3>
+            <button class="collapse-btn">▼</button>
+            <div class="card-content">
+                <div id="species-analysis" class="species-analysis"></div>
+            </div>
+        </div>
+
+        <div class="card collapsible-card">
+            <h3>📅 Linha do Tempo - Histórico de Apreensões</h3>
+            <button class="collapse-btn">▼</button>
+            <div class="card-content">
+                <div id="timeline" class="timeline"></div>
+            </div>
+        </div>
+    </div>
+<script>
+    // Initialize particles background
+    particlesJS('particles-js', {
+        particles: {
+            number: { value: 40, density: { enable: true, value_area: 800 } },
+            color: { value: "#94a3b8" },
+            shape: { type: "circle" },
+            opacity: { value: 0.15, random: false },
+            size: { value: 3, random: true },
+            line_linked: { enable: true, distance: 150, color: "#94a3b8", opacity: 0.1, width: 1 },
+            move: { enable: true, speed: 1, direction: "none", random: false, straight: false, out_mode: "out" }
+        },
+        interactivity: {
+            detect_on: "canvas",
+            events: { onhover: { enable: true, mode: "repulse" }, onclick: { enable: true, mode: "push" }, resize: true },
+            modes: { repulse: { distance: 100, duration: 0.4 }, push: { particles_nb: 4 } }
+        },
+        retina_detect: true
+    });
+
+    class FirebaseService {
+        constructor() { this.db = null; }
+        async init() {
+            await new Promise(resolve => {
+                const check = () => window.firebaseDB ? resolve() : setTimeout(check, 100);
+                check();
+            });
+            this.db = window.firebaseDB;
+        }
+        async readAll() {
+            const { db, collection, getDocs, query, orderBy } = this.db;
+            const q = query(collection(db, "apreensoes"), orderBy("createdAt", "desc"));
+            const snapshot = await getDocs(q);
+            return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        }
+    }
+
+    class UIService {
+        constructor() {
+            this.loadingElement = document.getElementById('loading');
+            this.syncStatusElement = document.getElementById('sync-status');
+            this.toastContainer = document.getElementById('toast-container');
+        }
+        showLoading() { this.loadingElement.style.display = 'flex'; }
+        hideLoading() { this.loadingElement.style.display = 'none'; }
+        showSyncStatus() { this.syncStatusElement.classList.remove('hidden'); }
+        hideSyncStatus() { this.syncStatusElement.classList.add('hidden'); }
+        showToast(message, type = 'info') {
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            const icons = { success: '✅', error: '❌', warning: '⚠️', info: 'ℹ️' };
+            toast.innerHTML = `<div class="toast-icon">${icons[type]}</div><div class="toast-message">${message}</div>`;
+            this.toastContainer.appendChild(toast);
+            requestAnimationFrame(() => toast.classList.add('show'));
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => toast.remove(), 400);
+            }, 4000);
+        }
+    }
+
+    class CacheManager {
+        constructor(prefix = 'coppa_cache_', ttl = 900000) { // 15 minutos
+            this.prefix = prefix;
+            this.ttl = ttl;
+        }
+        get(key) {
+            const itemStr = localStorage.getItem(this.prefix + key);
+            if (!itemStr) return null;
+            const item = JSON.parse(itemStr);
+            const isExpired = Date.now() > item.expiry;
+            return isExpired ? null : item.value;
+        }
+        set(key, value) {
+            const item = { value, expiry: Date.now() + this.ttl };
+            localStorage.setItem(this.prefix + key, JSON.stringify(item));
+        }
+    }
+
+    class DataManager {
+        constructor(firebaseService, uiService, cacheService) {
+            this.firebase = firebaseService;
+            this.ui = uiService;
+            this.cache = cacheService;
+            this.apreensoes = [];
+        }
+
+        async loadData() {
+            this.ui.showLoading();
+            try {
+                const cachedData = this.cache.get('all_data');
+                if (cachedData) {
+                    console.log('📦 Carregando dados do cache...');
+                    this.apreensoes = window.speciesNormalizer.normalizeAllData(cachedData);
+                    app.dashboard.updateDashboard(); // Update com dados do cache
+                    this.ui.hideLoading();
+                }
+                
+                this.ui.showSyncStatus();
+                console.log('☁️ Buscando dados do Firebase...');
+                const rawData = await this.firebase.readAll();
+                this.apreensoes = window.speciesNormalizer.normalizeAllData(rawData);
+                this.cache.set('all_data', rawData);
+                console.log('💾 Dados salvos no cache.');
+                this.ui.hideSyncStatus();
+
+            } catch (error) {
+                console.error("Erro ao carregar dados:", error);
+                this.ui.showToast('Erro ao carregar dados do Firebase', 'error');
+                this.ui.hideLoading();
+                this.ui.hideSyncStatus();
+            } finally {
+                this.ui.hideLoading();
+            }
+        }
+
+        async refreshData() {
+            this.ui.showSyncStatus();
+            const rawData = await this.firebase.readAll();
+            this.apreensoes = window.speciesNormalizer.normalizeAllData(rawData);
+            this.cache.set('all_data', rawData);
+            app.filter.filterData();
+            this.ui.hideSyncStatus();
+            this.ui.showToast('Dados atualizados com sucesso!', 'success');
+        }
+
+        getFilteredData() {
+            const cityFilter = document.getElementById('filter-city').value;
+            const periodFilter = document.getElementById('filter-period').value;
+            const { animalType, materialType } = app._activeFilters;
+
+            let filtered = this.apreensoes;
+
+            if (cityFilter) filtered = filtered.filter(a => a.city === cityFilter);
+            if (periodFilter !== 'all') filtered = app.periodFilter.applyPeriodFilter(filtered, periodFilter);
+            if (animalType) filtered = filtered.filter(a => a.animals.some(an => an.type === animalType));
+            if (materialType) filtered = filtered.filter(a => a.materials.some(m => m.type.toLowerCase() === materialType.toLowerCase()));
+            
+            return filtered;
+        }
+    }
+    
+    class MapManager {
+        constructor(mapId) {
+            this.map = null;
+            this.markerLayer = null; // Alterado de heatLayer para markerLayer
+            this.mapId = mapId;
+            this.mapInfoElement = document.getElementById('map-info');
+            this.mapMissingCitiesElement = document.getElementById('map-missing-cities');
+            
+            this.geoCache = {
+                'Salvador': [-12.9777, -38.5016],
+                'Feira de Santana': [-12.2669, -38.9669],
+                'Vitória da Conquista': [-14.8661, -40.8394],
+                'Camaçari': [-12.6978, -38.3242],
+                'Lauro de Freitas': [-12.8944, -38.3272],
+                'Ilhéus': [-14.7891, -39.0494],
+                'Itabuna': [-14.7858, -39.2801],
+                'Juazeiro': [-9.4316, -40.5015],
+                'Barreiras': [-12.1478, -44.9904],
+                'Jequié': [-13.8587, -40.0838],
+                'Alagoinhas': [-12.1364, -38.4187],
+                'Porto Seguro': [-16.4499, -39.0645],
+                'Teixeira de Freitas': [-17.5361, -39.7247],
+                'Paulo Afonso': [-9.4075, -38.2219],
+                'Eunápolis': [-16.3775, -39.5858],
+                'Santo Antônio de Jesus': [-12.9697, -39.2616],
+                'Valença': [-13.3703, -39.0731],
+                'Guanambi': [-14.2223, -42.7806],
+                'Jacobina': [-11.1824, -40.5134],
+                'Serrinha': [-11.6627, -39.0063],
+                'Irecê': [-11.3045, -41.8559],
+                'Brumado': [-14.2045, -41.6698],
+                'Itapetinga': [-15.2492, -40.2483],
+                'Senhor do Bonfim': [-10.4578, -40.1897],
+                'Candeias': [-12.6687, -38.5414],
+                'Simões Filho': [-12.7878, -38.4034],
+                'Dias d\'Ávila': [-12.6105, -38.2838],
+                'Santo Amaro': [-12.5458, -38.7139]
+            };
+        }
+
+        initMap() {
+            this.map = L.map(this.mapId).setView([-12.9, -39.5], 6);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            }).addTo(this.map);
+            this.markerLayer = L.layerGroup().addTo(this.map);
+        }
+
+        updateMapMarkers(data) {
+            if (!this.map) this.initMap();
+            this.markerLayer.clearLayers();
+
+            const citiesWithOps = [...new Set(data.map(item => item.city))];
+            const allCoords = [];
+            const foundCities = new Set();
+            const missingCities = new Set();
+            
+            citiesWithOps.forEach(city => {
+                const coords = this.geoCache[city];
+                if(coords) {
+                    foundCities.add(city);
+                    allCoords.push(coords);
+
+                    const marker = L.circleMarker(coords, {
+                        radius: 8,
+                        fillColor: "#dc2626",
+                        color: "#fff",
+                        weight: 2,
+                        opacity: 1,
+                        fillOpacity: 0.8
+                    }).bindTooltip(city);
+
+                    this.markerLayer.addLayer(marker);
+
+                } else {
+                    missingCities.add(city);
+                }
+            });
+
+            if (citiesWithOps.length > 0) {
+                 this.mapInfoElement.textContent = `Exibindo ${foundCities.size} de ${citiesWithOps.length} cidades com coordenadas conhecidas.`;
+            } else {
+                this.mapInfoElement.textContent = `Nenhuma cidade para exibir no mapa com os filtros atuais.`;
+            }
+
+            if (missingCities.size > 0) {
+                this.mapMissingCitiesElement.innerHTML = `<strong>Cidades não exibidas por falta de coordenadas:</strong> ${[...missingCities].join(', ')}`;
+                console.warn(`[MAPA] Cidades sem coordenadas: ${[...missingCities].join(', ')}`);
+            } else {
+                this.mapMissingCitiesElement.innerHTML = '';
+            }
+
+            if (allCoords.length > 0) {
+                const bounds = L.latLngBounds(allCoords);
+                this.map.fitBounds(bounds.pad(0.2));
+            }
+        }
+    }
+
+    class ChartManager {
+        constructor() {
+            this.charts = {};
+            this.chartColors = ['#dc2626', '#059669', '#d97706', '#0369a1', '#7c3aed', '#c2410c', '#0d9488', '#be185d'];
+        }
+        
+        _renderEmptyState(canvasId) {
+            const ctx = document.getElementById(canvasId).getContext('2d');
+            if (this.charts[canvasId]) this.charts[canvasId].destroy();
+            ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+            ctx.font = '16px Inter'; ctx.fillStyle = '#cbd5e1';
+            ctx.textAlign = 'center';
+            ctx.fillText('Nenhum dado para o filtro selecionado.', ctx.canvas.width / 2, ctx.canvas.height / 2);
+        }
+
+        updateCharts(data) {
+            Object.values(this.charts).forEach(chart => chart && chart.destroy());
+            this.createAnimalChart(data);
+            this.createMonthChart(data);
+            this.createMaterialChart(data);
+            this.createWeekdayChart(data);
+        }
+        
+        calculateLinearRegression(data) {
+            const n = data.length;
+            if (n < 2) return null;
+            let sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0;
+            data.forEach((y, i) => {
+                const x = i + 1;
+                sumX += x; sumY += y;
+                sumXY += x * y; sumX2 += x * x;
+            });
+            const slope = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX);
+            const intercept = (sumY - slope * sumX) / n;
+            return data.map((_, i) => slope * (i + 1) + intercept);
+        }
+        
+        createAnimalChart(data) {
+            const canvasId = 'animalChart';
+            if (data.length === 0) return this._renderEmptyState(canvasId);
+
+            const counts = data.flatMap(a => a.animals).reduce((acc, an) => {
+                acc[an.type] = (acc[an.type] || 0) + an.quantity;
+                return acc;
+            }, {});
+
+            const chartData = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+            const ctx = document.getElementById(canvasId).getContext('2d');
+            this.charts[canvasId] = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: chartData.map(d => d[0]),
+                    datasets: [{ data: chartData.map(d => d[1]), backgroundColor: this.chartColors }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    onClick: (evt, elements) => {
+                        if (elements.length > 0) {
+                            const index = elements[0].index;
+                            const label = this.charts[canvasId].data.labels[index];
+                            app.setInteractiveFilter('animalType', label);
+                        }
+                    },
+                    plugins: { legend: { position: 'bottom', labels: { color: '#f8fafc' } } }
+                }
+            });
+        }
+
+        createMonthChart(data) {
+            const canvasId = 'monthChart';
+            if (data.length === 0) return this._renderEmptyState(canvasId);
+            
+            const monthCounts = {};
+            data.forEach(a => {
+                const month = a.date.substring(0, 7);
+                monthCounts[month] = (monthCounts[month] || 0) + 1;
+            });
+            const sortedMonths = Object.keys(monthCounts).sort();
+            const values = sortedMonths.map(m => monthCounts[m]);
+            const trendData = this.calculateLinearRegression(values);
+            
+            const ctx = document.getElementById(canvasId).getContext('2d');
+            const gradient = ctx.createLinearGradient(0, 0, 0, 400);
+            gradient.addColorStop(0, 'rgba(220, 38, 38, 0.6)');
+            gradient.addColorStop(1, 'rgba(185, 28, 28, 0.05)');
+
+            this.charts[canvasId] = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: sortedMonths,
+                    datasets: [
+                        { label: 'Apreensões', data: values, borderColor: '#dc2626', backgroundColor: gradient, borderWidth: 3, tension: 0.4, fill: true },
+                        { label: 'Tendência', data: trendData, borderColor: '#f59e0b', borderWidth: 2, borderDash: [5, 5], fill: false, pointRadius: 0 }
+                    ]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    scales: {
+                        y: { beginAtZero: true, ticks: { color: 'var(--text-light)' }, grid: { color: 'rgba(255, 255, 255, 0.1)' } },
+                        x: { ticks: { color: 'var(--text-light)' }, grid: { display: false } }
+                    }
+                }
+            });
+        }
+
+        createMaterialChart(data) {
+            const canvasId = 'materialChart';
+            if (data.length === 0) return this._renderEmptyState(canvasId);
+            
+            const counts = data.flatMap(a => a.materials || []).reduce((acc, m) => {
+                const type = this.capitalize(m.type);
+                acc[type] = (acc[type] || 0) + m.quantity;
+                return acc;
+            }, {});
+
+            const top = Object.entries(counts).sort((a,b) => b[1] - a[1]).slice(0, 8);
+            if (top.length === 0) return this._renderEmptyState(canvasId);
+
+            const ctx = document.getElementById(canvasId).getContext('2d');
+            this.charts[canvasId] = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: top.map(m => m[0]),
+                    datasets: [{ data: top.map(m => m[1]), backgroundColor: this.chartColors }]
+                },
+                options: {
+                    indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+                    onClick: (evt, elements) => {
+                        if (elements.length > 0) {
+                            const label = this.charts[canvasId].data.labels[elements[0].index];
+                            app.setInteractiveFilter('materialType', label);
+                        }
+                    },
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { beginAtZero: true, ticks: { color: 'var(--text-light)' }, grid: { color: 'rgba(255, 255, 255, 0.1)' } },
+                        y: { ticks: { color: 'var(--text-light)' }, grid: { display: false } }
+                    }
+                }
+            });
+        }
+
+        createWeekdayChart(data) {
+            const canvasId = 'weekdayChart';
+            if (data.length === 0) return this._renderEmptyState(canvasId);
+
+            const weekdayCounts = [0, 0, 0, 0, 0, 0, 0]; // Dom, Seg, Ter, ...
+            data.forEach(a => {
+                const day = new Date(a.date + 'T12:00:00').getDay();
+                weekdayCounts[day]++;
+            });
+
+            const ctx = document.getElementById(canvasId).getContext('2d');
+            this.charts[canvasId] = new Chart(ctx, {
+                type: 'radar',
+                data: {
+                    labels: ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'],
+                    datasets: [{
+                        label: 'Ocorrências',
+                        data: weekdayCounts,
+                        backgroundColor: 'rgba(220, 38, 38, 0.4)',
+                        borderColor: '#dc2626',
+                        pointBackgroundColor: '#dc2626',
+                        pointBorderColor: '#fff',
+                    }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        r: {
+                            angleLines: { color: 'rgba(255,255,255,0.2)' },
+                            grid: { color: 'rgba(255,255,255,0.2)' },
+                            pointLabels: { color: '#f8fafc', font: { size: 12 } },
+                            ticks: { backdropColor: 'rgba(0,0,0,0.5)', color: '#f8fafc' }
+                        }
+                    }
+                }
+            });
+        }
+
+        capitalize(str) { return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase(); }
+    }
+
+
+    class DashboardManager {
+        constructor() {
+            this.charts = new ChartManager();
+            this.map = new MapManager('map');
+        }
+
+        updateDashboard(filteredData = app.data.getFilteredData()) {
+            this.updateStats(filteredData);
+            this.charts.updateCharts(filteredData);
+            this.map.updateMapMarkers(filteredData);
+            this.updateSpeciesAnalysis(filteredData);
+            this.updateTimeline(filteredData);
+            this.updateCityFilter(app.data.apreensoes);
+        }
+
+        updateStats(data) {
+            const totalAnimals = data.reduce((sum, a) => sum + (a.animals || []).reduce((s, an) => s + an.quantity, 0), 0);
+            const totalMaterials = data.reduce((sum, a) => sum + (a.materials || []).reduce((s, m) => s + m.quantity, 0), 0);
+            const locations = new Set(data.map(a => `${a.city} - ${a.neighborhood}`)).size;
+            
+            this.animateNumber('total-operations', data.length);
+            this.animateNumber('total-animals', totalAnimals);
+            this.animateNumber('total-materials', totalMaterials);
+            this.animateNumber('total-locations', locations);
+        }
+
+        animateNumber(elementId, targetValue) {
+            const element = document.getElementById(elementId);
+            const start = parseInt(element.textContent.replace(/\./g, '')) || 0;
+            const duration = 1500;
+            let startTimestamp = null;
+            const step = (timestamp) => {
+                if (!startTimestamp) startTimestamp = timestamp;
+                const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+                element.innerHTML = Math.floor(progress * (targetValue - start) + start).toLocaleString('pt-BR');
+                if (progress < 1) window.requestAnimationFrame(step);
+            };
+            window.requestAnimationFrame(step);
+        }
+
+        updateSpeciesAnalysis(data) {
+            const container = document.getElementById('species-analysis');
+            if (data.length === 0) {
+                container.innerHTML = `<div style="text-align: center; padding: 40px 20px; color: var(--text-secondary);"><div style="font-size: 3em; margin-bottom: 15px; opacity: 0.3;">🦎</div><p>Nenhum dado de espécies para o filtro selecionado.</p></div>`;
+                return;
+            }
+
+            const speciesData = {};
+            data.forEach(a => (a.animals || []).forEach(an => {
+                if (!speciesData[an.type]) speciesData[an.type] = {};
+                speciesData[an.type][an.species] = (speciesData[an.type][an.species] || 0) + an.quantity;
+            }));
+
+            container.innerHTML = Object.entries(speciesData).map(([type, species]) => {
+                const total = Object.values(species).reduce((s, c) => s + c, 0);
+                const sortedSpecies = Object.entries(species).sort((a, b) => b[1] - a[1]);
+                return `
+                    <div class="species-group">
+                        <div class="species-header">${app.species.animalIcons[type] || '❓'} ${type} - Total: ${total}</div>
+                        ${sortedSpecies.map(([name, count]) => {
+                            const perc = ((count / total) * 100).toFixed(1);
+                            return `
+                            <div class="species-item">
+                                <div class="species-bar">
+                                    <div class="species-info">
+                                        <span class="species-name">${name}</span>
+                                        <span class="species-count">${count} (${perc}%)</span>
+                                    </div>
+                                    <div class="species-bar-bg"><div class="species-bar-fill" style="width: ${perc}%;"></div></div>
+                                </div>
+                            </div>`;
+                        }).join('')}
+                    </div>`;
+            }).join('');
+        }
+
+        updateTimeline(data) {
+            const timeline = document.getElementById('timeline');
+            if (data.length === 0) {
+                timeline.innerHTML = `<div style="text-align: center; padding: 60px 20px; color: var(--text-secondary);"><div style="font-size: 4em; margin-bottom: 20px; opacity: 0.3;">📋</div><h3>Nenhuma Apreensão Registrada</h3><p>Não há registros para o filtro selecionado.</p></div>`;
+                return;
+            }
+            
+            timeline.innerHTML = data.sort((a, b) => new Date(b.date) - new Date(a.date)).map((a, i) => {
+                const totalAnimals = (a.animals || []).reduce((s, an) => s + an.quantity, 0);
+                const totalMaterials = (a.materials || []).reduce((s, m) => s + m.quantity, 0);
+                return `
+                    <div class="timeline-item collapsible-card" style="animation: fadeInUp 0.6s ease ${i * 0.05}s both;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <h3 style="margin: 0;"><div class="timeline-date">📅 ${this.formatDate(a.date)} às ${a.time || 'N/A'}</div></h3>
+                            <button class="collapse-btn" style="position: static; transform: none;">▼</button>
+                        </div>
+                        <div class="card-content">
+                            <div class="timeline-header" style="margin-top: 20px;">
+                                <div class="timeline-location">📍 ${a.city} - ${a.neighborhood}</div>
+                            </div>
+                            <div style="margin: 15px 0; display: flex; flex-wrap: wrap; gap: 10px; align-items: center;">
+                                <div style="font-weight: 600;">👮 Responsável: ${a.responsible}</div>
+                                <div style="background: var(--success-gradient); color: white; padding: 8px 15px; border-radius: 20px; font-weight: 700; font-size: 0.9em;">🦎 ${totalAnimals} Animais</div>
+                                ${totalMaterials > 0 ? `<div style="background: var(--warning-gradient); color: white; padding: 8px 15px; border-radius: 20px; font-weight: 700; font-size: 0.9em;">🔗 ${totalMaterials} Materiais</div>` : ''}
+                            </div>
+                            <div class="animal-list">
+                                ${(a.animals || []).map(an => `<div class="animal-tag"><span class="animal-icon">${app.species.animalIcons[an.type] || '❓'}</span> <span class="animal-species-name">${an.species}</span> <span class="animal-quantity">(${an.quantity})</span></div>`).join('')}
+                            </div>
+                            ${a.photosLink ? `<a href="${a.photosLink}" target="_blank" class="btn btn-info" style="width: 100%;">📸 Visualizar Fotos ↗</a>` : ''}
+                        </div>
+                    </div>`;
+            }).join('');
+
+            document.querySelectorAll('.timeline-item .collapse-btn').forEach(btn => {
+                btn.onclick = (e) => {
+                    const card = btn.closest('.collapsible-card');
+                    card.classList.toggle('collapsed');
+                    btn.innerHTML = card.classList.contains('collapsed') ? '▶' : '▼';
+                };
+            });
+        }
+        
+        updateCityFilter(data) {
+            const cities = [...new Set(data.map(a => a.city))].sort();
+            const select = document.getElementById('filter-city');
+            const current = select.value;
+            select.innerHTML = '<option value="">Todas as Cidades</option>';
+            cities.forEach(city => {
+                select.innerHTML += `<option value="${city}">${city}</option>`;
+            });
+            select.value = current;
+        }
+
+        formatDate(dateStr) {
+            if (!dateStr || !dateStr.includes('-')) return 'Data Inválida';
+            const [y, m, d] = dateStr.split('-');
+            return `${d}/${m}/${y}`;
+        }
+    }
+
+    class FilterManager {
+        filterData() {
+            app.dashboard.updateDashboard(app.data.getFilteredData());
+        }
+    }
+    
+    class PeriodFilterManager {
+        constructor() {
+            this.customDatesDiv = document.getElementById('custom-date-group');
+            this.startDateInput = document.getElementById('start-date');
+            this.endDateInput = document.getElementById('end-date');
+        }
+        handlePeriodFilter() {
+            const val = document.getElementById('filter-period').value;
+            this.customDatesDiv.style.display = (val === 'custom') ? 'flex' : 'none';
+            if (val !== 'custom') app.filter.filterData();
+        }
+        filterDataByDates() {
+            if (this.startDateInput.value && this.endDateInput.value) app.filter.filterData();
+        }
+        applyPeriodFilter(data, period) {
+            const now = new Date();
+            let start, end;
+            now.setHours(0,0,0,0);
+
+            switch(period) {
+                case 'this-week':
+                    start = new Date(now.setDate(now.getDate() - now.getDay()));
+                    end = new Date(now.setDate(now.getDate() - now.getDay() + 6));
+                    break;
+                case 'last-week':
+                    end = new Date(now.setDate(now.getDate() - now.getDay() - 1));
+                    start = new Date(now.setDate(now.getDate() - now.getDay()));
+                    break;
+                case 'this-month':
+                    start = new Date(now.getFullYear(), now.getMonth(), 1);
+                    end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+                    break;
+                case 'last-month':
+                    start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+                    end = new Date(now.getFullYear(), now.getMonth(), 0);
+                    break;
+                case 'this-year':
+                    start = new Date(now.getFullYear(), 0, 1);
+                    end = new Date(now.getFullYear(), 11, 31);
+                    break;
+                case 'custom':
+                    start = this.startDateInput.value ? new Date(this.startDateInput.value + 'T00:00:00') : null;
+                    end = this.endDateInput.value ? new Date(this.endDateInput.value + 'T00:00:00') : null;
+                    if (!start || !end) return data;
+                    break;
+                default: return data;
+            }
+            end.setHours(23, 59, 59, 999);
+            return data.filter(a => {
+                const date = new Date(a.date + 'T00:00:00');
+                return date >= start && date <= end;
+            });
+        }
+    }
+
+    class ExportManager {
+        exportCSV() {
+            let csv = 'Data;Hora;Cidade;Bairro;Responsável;Animais;Materiais;Observações\n';
+            app.data.getFilteredData().forEach(a => {
+                const animals = `"${(a.animals || []).map(an => `${an.species} (${an.quantity})`).join(', ')}"`;
+                const materials = `"${(a.materials || []).map(m => `${m.type} (${m.quantity})`).join(', ')}"`;
+                csv += `${a.date};${a.time || ''};${a.city};${a.neighborhood};${a.responsible};${animals};${materials};"${a.observations || ''}"\n`;
+            });
+            
+            const blob = new Blob([`\uFEFF${csv}`], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `apreensoes_coppa_${new Date().toISOString().split('T')[0]}.csv`;
+            link.click();
+            app.ui.showToast('Dados exportados para CSV!', 'success');
+        }
+
+        generatePDF() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF('p', 'mm', 'a4');
+            const data = app.data.getFilteredData();
+            
+            doc.setFillColor(220, 38, 38); doc.rect(0, 0, 210, 45, 'F');
+            doc.setFontSize(24); doc.setTextColor(255); doc.setFont('helvetica', 'bold');
+            doc.text('COPPA - Relatório de Apreensões', 105, 25, { align: 'center' });
+            
+            const totalAnimals = data.reduce((sum, a) => sum + (a.animals || []).reduce((s, an) => s + an.quantity, 0), 0);
+            
+            doc.setFontSize(14); doc.setTextColor(0); doc.setFont('helvetica', 'bold');
+            doc.text('Resumo Executivo', 15, 60);
+            doc.setFontSize(11); doc.setFont('helvetica', 'normal');
+            doc.text(`- Operações: ${data.length}\n- Animais Apreendidos: ${totalAnimals}`, 20, 70);
+            
+            const tableData = data.map(a => [
+                app.dashboard.formatDate(a.date),
+                `${a.city} - ${a.neighborhood}`,
+                (a.animals || []).map(an => `${an.species} (${an.quantity})`).join(', '),
+                a.responsible
+            ]);
+
+            doc.autoTable({
+                head: [['Data', 'Local', 'Animais', 'Responsável']],
+                body: tableData,
+                startY: 90,
+                headStyles: { fillColor: [220, 38, 38] },
+            });
+            
+            doc.save(`relatorio_coppa_${new Date().toISOString().split('T')[0]}.pdf`);
+            app.ui.showToast('Relatório PDF gerado!', 'success');
+        }
+    }
+    
+    class SpeciesManager {
+        constructor() {
+            this.animalIcons = {
+                'Serpente': '🐍', 'Iguana': '🦎', 'Teiú': '🦎',
+                'Jabuti': '🐢', 'Cágado': '🐢', 'Ave Silvestre': '🦜',
+                'Primata': '🐒', 'Mamífero': '🦔', 'Crocodiliano': '🐊',
+                'Aranha': '🕷️', 'Escorpião': '🦂', 'Outro': '❓'
+            };
+        }
+    }
+    
+    class SpeciesNormalizer {
+        constructor() {
+            this.speciesMap = {
+                'ticotico': 'Tico-tico', 'tico-tico': 'Tico-tico', 'tico tico': 'Tico-tico',
+                'bemtevi': 'Bem-te-vi', 'bem-te-vi': 'Bem-te-vi', 'bem te vi': 'Bem-te-vi',
+                'sabia': 'Sabiá', 'canario': 'Canário', 'curio': 'Curió', 'azulao': 'Azulão',
+                'coleirinha': 'Coleirinha', 'coleirinho': 'Coleirinha', 'coleiro': 'Coleirinha',
+                'papa-capim': 'Papa-capim', 'papacapim': 'Papa-capim', 'papa capim': 'Papa-capim',
+                'passaro preto': 'Pássaro-preto', 'pássaro preto': 'Pássaro-preto',
+                'jiboia': 'Jiboia', 'jibóia': 'Jiboia', 'iguana': 'Iguana', 'teiú': 'Teiú', 'teiu': 'Teiú',
+                'jabuti': 'Jabuti', 'cágado': 'Cágado', 'papagaio': 'Papagaio',
+            };
+        }
+        normalizeString(str) {
+            return str.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+        }
+        capitalize(str) {
+            return str.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+        }
+        normalizeSpecies(species) {
+            if (!species) return 'Não Identificado';
+            const normalized = this.normalizeString(species);
+            return this.speciesMap[normalized] || this.capitalize(species);
+        }
+        normalizeAnimals(animals) {
+            return (animals || []).map(animal => ({...animal, species: this.normalizeSpecies(animal.species)}));
+        }
+        normalizeAllData(data) {
+            return data.map(item => ({...item, animals: this.normalizeAnimals(item.animals)}));
+        }
+    }
+
+    window.speciesNormalizer = new SpeciesNormalizer();
+
+    class Application {
+        constructor() {
+            this.firebase = new FirebaseService();
+            this.ui = new UIService();
+            this.cache = new CacheManager();
+            this.data = new DataManager(this.firebase, this.ui, this.cache);
+            this.species = new SpeciesManager();
+            this.dashboard = new DashboardManager();
+            this.filter = new FilterManager();
+            this.periodFilter = new PeriodFilterManager();
+            this.export = new ExportManager();
+            this._activeFilters = { animalType: null, materialType: null };
+        }
+        
+        async init() {
+            try {
+                await this.firebase.init();
+                this.setupEventListeners();
+                await this.data.loadData();
+                this.dashboard.updateDashboard();
+                console.log('🚨 Sistema COPPA Premium (Visualização) iniciado com sucesso!');
+            } catch (error) {
+                console.error('Erro ao inicializar aplicação:', error);
+                this.ui.showToast('Erro fatal na inicialização.', 'error');
+            }
+        }
+        
+        setupEventListeners() {
+            document.addEventListener('keydown', (e) => {
+                if (e.ctrlKey && e.key.toLowerCase() === 'r') { e.preventDefault(); this.data.refreshData(); }
+                if (e.ctrlKey && e.key.toLowerCase() === 'e') { e.preventDefault(); this.export.exportCSV(); }
+            });
+
+            document.querySelectorAll('.collapsible-card .collapse-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const card = btn.closest('.collapsible-card');
+                    card.classList.toggle('collapsed');
+                    btn.innerHTML = card.classList.contains('collapsed') ? '▶' : '▼';
+                });
+            });
+        }
+        
+        setInteractiveFilter(type, value) {
+            this._activeFilters[type] = value;
+            const display = document.getElementById('interactive-filter-display');
+            const textEl = document.getElementById('interactive-filter-text');
+            textEl.textContent = `Filtro: ${value}`;
+            display.classList.remove('hidden');
+            this.filter.filterData();
+            this.ui.showToast(`Dashboard filtrado por: ${value}`, 'info');
+        }
+
+        clearInteractiveFilters() {
+            this._activeFilters = { animalType: null, materialType: null };
+            document.getElementById('interactive-filter-display').classList.add('hidden');
+            this.filter.filterData();
+            this.ui.showToast('Filtros interativos removidos.', 'info');
+        }
+    }
+
+    const app = new Application();
+    document.addEventListener('DOMContentLoaded', () => app.init());
+
+</script>
+</body>
+</html>
