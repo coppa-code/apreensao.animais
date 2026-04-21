@@ -1024,13 +1024,8 @@
             this.mapId = mapId;
             this.mapInfoElement = document.getElementById('map-info');
             this.mapMissingCitiesElement = document.getElementById('map-missing-cities');
-
-            this.dynamicCacheKey = 'coppa_geo_dynamic_cache';
-            this.dynamicGeoCache = this.loadDynamicCache();
-            this.pendingRequests = new Map();
-            this.renderToken = 0;
-
-            // Base de dados interna e completa com municípios já conhecidos
+            
+            // Base de dados interna e completa com todos os 417 municípios da Bahia
             this.geoCache = {
                 'Abaíra': [-13.25, -41.66], 'Abaré': [-8.72, -39.11], 'Acajutiba': [-11.65, -38.01], 'Adustina': [-10.53, -38.1], 
                 'Água Fria': [-12.03, -38.76], 'Aiquara': [-14.13, -39.88], 'Alagoinhas': [-12.13, -38.41], 'Alcobaça': [-17.51, -39.19], 
@@ -1134,73 +1129,8 @@
                 'Una': [-15.3, -39.06], 'Urandi': [-14.81, -42.61], 'Uruçuca': [-14.6, -39.28], 'Utinga': [-12.08, -41.1], 
                 'Valença': [-13.36, -39.06], 'Valente': [-11.41, -39.46], 'Várzea da Roça': [-11.63, -40.13], 'Várzea do Poço': [-11.53, -40.35], 
                 'Várzea Nova': [-11.23, -40.95], 'Varzedo': [-12.96, -39.41], 'Vera Cruz': [-12.96, -38.6], 'Vereda': [-17.23, -40.1], 
-                'Wenceslau Guimarães': [-13.66, -39.48], 'Xique-Xique': [-10.81, -42.73], 
-                'Aratuípe': [-13.0716, -39.0038]
+                'Wenceslau Guimarães': [-13.66, -39.48], 'Xique-Xique': [-10.81, -42.73]
             };
-
-            this.normalizedStaticCache = this.buildNormalizedCache(this.geoCache);
-        }
-
-        loadDynamicCache() {
-            try {
-                return JSON.parse(localStorage.getItem(this.dynamicCacheKey) || '{}');
-            } catch {
-                return {};
-            }
-        }
-
-        saveDynamicCache() {
-            localStorage.setItem(this.dynamicCacheKey, JSON.stringify(this.dynamicGeoCache));
-        }
-
-        buildNormalizedCache(source) {
-            return Object.fromEntries(
-                Object.entries(source).map(([name, coords]) => [this.normalizeKey(name), coords])
-            );
-        }
-
-        normalizeKey(value = '') {
-            return String(value)
-                .normalize('NFD')
-                .replace(/[\u0300-\u036f]/g, '')
-                .replace(/[’'`´]/g, '')
-                .replace(/\s+/g, ' ')
-                .trim()
-                .toLowerCase();
-        }
-
-        getDisplayLocation(item) {
-            const neighborhood = (item.neighborhood || '').trim();
-            const city = (item.city || '').trim();
-
-            if (neighborhood && city && this.normalizeKey(neighborhood) !== this.normalizeKey(city)) {
-                return `${neighborhood}, ${city}`;
-            }
-
-            return city || neighborhood || 'Local não informado';
-        }
-
-        buildGeocodeQueries(item) {
-            const neighborhood = (item.neighborhood || '').trim();
-            const city = (item.city || '').trim();
-            const queries = [];
-
-            if (neighborhood && city && this.normalizeKey(neighborhood) !== this.normalizeKey(city)) {
-                queries.push(`${neighborhood}, ${city}, Bahia, Brasil`);
-            }
-
-            if (city) {
-                queries.push(`${city}, Bahia, Brasil`);
-            } else if (neighborhood) {
-                queries.push(`${neighborhood}, Bahia, Brasil`);
-            }
-
-            return [...new Set(queries.filter(Boolean))];
-        }
-
-        getKnownCoords(label) {
-            const key = this.normalizeKey(label);
-            return this.dynamicGeoCache[key] || this.normalizedStaticCache[key] || null;
         }
 
         initMap() {
@@ -1209,162 +1139,58 @@
                 attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
             }).addTo(this.map);
             this.markerLayer = L.layerGroup().addTo(this.map);
-            setTimeout(() => this.map.invalidateSize(), 100);
-        }
-
-        addMarker(coords, label) {
-            const marker = L.circleMarker(coords, {
-                radius: 8,
-                fillColor: "#dc2626",
-                color: "#fff",
-                weight: 2,
-                opacity: 1,
-                fillOpacity: 0.8
-            }).bindTooltip(label);
-
-            this.markerLayer.addLayer(marker);
-        }
-
-        fitMapToCoords(coordsList) {
-            if (!coordsList.length) return;
-            const bounds = L.latLngBounds(coordsList);
-            this.map.fitBounds(bounds.pad(0.2));
-            setTimeout(() => this.map.invalidateSize(), 100);
-        }
-
-        updateStatus(total, foundSet, missingSet) {
-            if (total > 0) {
-                this.mapInfoElement.textContent = `Exibindo ${foundSet.size} de ${total} localidades com coordenadas conhecidas.`;
-            } else {
-                this.mapInfoElement.textContent = `Nenhuma localidade para exibir no mapa com os filtros atuais.`;
-            }
-
-            if (missingSet.size > 0) {
-                this.mapMissingCitiesElement.innerHTML = `<strong>Localidades ainda sem coordenadas:</strong> ${[...missingSet].join(', ')}`;
-                console.warn(`[MAPA] Localidades ainda sem coordenadas: ${[...missingSet].join(', ')}`);
-            } else {
-                this.mapMissingCitiesElement.innerHTML = '';
-            }
-        }
-
-        async fetchGeocode(query) {
-            const url = new URL('https://nominatim.openstreetmap.org/search');
-            url.searchParams.set('format', 'jsonv2');
-            url.searchParams.set('limit', '1');
-            url.searchParams.set('countrycodes', 'br');
-            url.searchParams.set('addressdetails', '1');
-            url.searchParams.set('q', query);
-
-            const response = await fetch(url.toString(), {
-                headers: {
-                    'Accept': 'application/json',
-                    'Accept-Language': 'pt-BR,pt;q=0.9,en;q=0.8'
-                }
-            });
-
-            if (!response.ok) {
-                throw new Error(`Falha no geocoder: ${response.status}`);
-            }
-
-            const results = await response.json();
-            if (!Array.isArray(results) || !results.length) return null;
-
-            const lat = Number(results[0].lat);
-            const lon = Number(results[0].lon);
-            if (Number.isNaN(lat) || Number.isNaN(lon)) return null;
-
-            return [lat, lon];
-        }
-
-        async geocodeLocation(label, queries, token, state) {
-            const requestKey = this.normalizeKey(label);
-
-            if (this.pendingRequests.has(requestKey)) {
-                return this.pendingRequests.get(requestKey);
-            }
-
-            const request = (async () => {
-                try {
-                    let coords = null;
-
-                    for (const query of queries) {
-                        try {
-                            coords = await this.fetchGeocode(query);
-                            if (coords) break;
-                        } catch (error) {
-                            console.warn(`[MAPA] Tentativa de geocodificação falhou para "${query}"`, error);
-                        }
-                    }
-
-                    if (!coords) return null;
-
-                    this.dynamicGeoCache[requestKey] = coords;
-                    this.saveDynamicCache();
-
-                    if (token === this.renderToken && !state.found.has(label)) {
-                        state.found.add(label);
-                        state.missing.delete(label);
-                        state.allCoords.push(coords);
-                        this.addMarker(coords, label);
-                        this.updateStatus(state.total, state.found, state.missing);
-                        this.fitMapToCoords(state.allCoords);
-                    }
-
-                    return coords;
-                } catch (error) {
-                    console.warn(`[MAPA] Não foi possível geocodificar "${label}"`, error);
-                    return null;
-                } finally {
-                    this.pendingRequests.delete(requestKey);
-                }
-            })();
-
-            this.pendingRequests.set(requestKey, request);
-            return request;
         }
 
         updateMapMarkers(data) {
             if (!this.map) this.initMap();
             this.markerLayer.clearLayers();
-            this.renderToken += 1;
 
-            const token = this.renderToken;
+            const citiesWithOps = [...new Set(data.map(item => item.city))];
+            const allCoords = [];
+            const foundCities = new Set();
+            const missingCities = new Set();
+            
+            citiesWithOps.forEach(city => {
+                const coords = this.geoCache[city];
+                if(coords) {
+                    foundCities.add(city);
+                    allCoords.push(coords);
 
-            const places = [...new Map(
-                data.map(item => {
-                    const label = this.getDisplayLocation(item);
-                    return [this.normalizeKey(label), {
-                        label,
-                        queries: this.buildGeocodeQueries(item)
-                    }];
-                })
-            ).values()];
+                    const marker = L.circleMarker(coords, {
+                        radius: 8,
+                        fillColor: "#dc2626",
+                        color: "#fff",
+                        weight: 2,
+                        opacity: 1,
+                        fillOpacity: 0.8
+                    }).bindTooltip(city);
 
-            const state = {
-                total: places.length,
-                found: new Set(),
-                missing: new Set(),
-                allCoords: []
-            };
+                    this.markerLayer.addLayer(marker);
 
-            places.forEach(place => {
-                const coords = this.getKnownCoords(place.label);
-
-                if (coords) {
-                    state.found.add(place.label);
-                    state.allCoords.push(coords);
-                    this.addMarker(coords, place.label);
                 } else {
-                    state.missing.add(place.label);
-                    this.geocodeLocation(place.label, place.queries, token, state);
+                    missingCities.add(city);
                 }
             });
 
-            this.updateStatus(state.total, state.found, state.missing);
-            this.fitMapToCoords(state.allCoords);
+            if (citiesWithOps.length > 0) {
+                 this.mapInfoElement.textContent = `Exibindo ${foundCities.size} de ${citiesWithOps.length} cidades com coordenadas conhecidas.`;
+            } else {
+                this.mapInfoElement.textContent = `Nenhuma cidade para exibir no mapa com os filtros atuais.`;
+            }
+
+            if (missingCities.size > 0) {
+                this.mapMissingCitiesElement.innerHTML = `<strong>Cidades não exibidas por falta de coordenadas:</strong> ${[...missingCities].join(', ')}`;
+                console.warn(`[MAPA] Cidades sem coordenadas: ${[...missingCities].join(', ')}`);
+            } else {
+                this.mapMissingCitiesElement.innerHTML = '';
+            }
+
+            if (allCoords.length > 0) {
+                const bounds = L.latLngBounds(allCoords);
+                this.map.fitBounds(bounds.pad(0.2));
+            }
         }
     }
-
 
     class ChartManager {
         constructor() {
